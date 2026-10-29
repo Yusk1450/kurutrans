@@ -17,6 +17,8 @@ class ViewController: UIViewController, RotationDetectorDelegate
 	let imageCount = 5
 	var frameIndex = 0
 
+	override var prefersStatusBarHidden: Bool { true }
+
 	override func viewDidLoad()
 	{
 		super.viewDidLoad()
