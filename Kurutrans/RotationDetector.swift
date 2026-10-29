@@ -10,8 +10,12 @@ import CoreMotion
 
 protocol RotationDetectorDelegate: AnyObject
 {
+	// しきい値を超えた場合
 	func rotationDetectorOnThreashold(rotationDetector:RotationDetector)
+	// 毎フレーム呼ばれる
 	func rotationDetectorOnUpdate(rotationDetector:RotationDetector, radians:Double)
+	// 水平状態が変化したら呼び出される
+	func rotationDetectorDidStatusChanged(rotationDetector:RotationDetector, isFlat:Bool)
 }
 
 class RotationDetector: NSObject
@@ -21,11 +25,15 @@ class RotationDetector: NSObject
 	
 	var threasholdDegrees:Double = 10.0
 	
+	// 前回の計測時間
 	var lastTimestamp:TimeInterval?
-	// 累積回転
+	// 累積回転量
 	var totalRotation:Double = 0.0
 	var lastTotalRotation:Double = 0.0
 
+	var isFlat = false
+	var isLastFlat = false
+	
 	var delegate:RotationDetectorDelegate?
 	
 	var isRunning = false
@@ -58,27 +66,28 @@ class RotationDetector: NSObject
 			guard let self, let motion else { return }
 			
 			let gravityZ = motion.gravity.z
-			var isFlat = false
+			self.isFlat = false
 			if (abs(gravityZ) >= 0.85)
 			{
-				isFlat = true
+				self.isFlat = true
 			}
 			
-			// 水平じゃなかったら
-			guard isFlat else
+			// 状態が変化した
+			if (self.isFlat != self.isLastFlat)
 			{
-				Task { @MainActor in
-					self.delegate?.rotationDetectorOnUpdate(rotationDetector: self, radians: self.totalRotation)
-				}
+				self.delegate?.rotationDetectorDidStatusChanged(rotationDetector: self, isFlat: self.isFlat)
+			}
+			self.isLastFlat = self.isFlat
+			
+			// 水平じゃなかったら
+			guard self.isFlat else
+			{
 				return
 			}
 			
 			let timestamp = motion.timestamp
 			guard let lastTimestamp else {
 				self.lastTimestamp = timestamp
-				Task { @MainActor in
-					self.delegate?.rotationDetectorOnUpdate(rotationDetector: self, radians: self.totalRotation)
-				}
 				return
 			}
 			
@@ -86,9 +95,6 @@ class RotationDetector: NSObject
 			guard dt > 0, dt < 0.5 else
 			{
 				self.lastTimestamp = timestamp
-				Task { @MainActor in
-					self.delegate?.rotationDetectorOnUpdate(rotationDetector: self, radians: self.totalRotation)
-				}
 				return
 			}
 			
@@ -120,6 +126,10 @@ class RotationDetector: NSObject
 	func stop()
 	{
 		self.motionManager.stopDeviceMotionUpdates()
+		self.totalRotation = 0.0
+		self.lastTotalRotation = 0.0
+		self.lastTimestamp = nil
+		
 		self.isRunning = false
 	}
 	

@@ -9,7 +9,6 @@ import UIKit
 
 class ViewController: UIViewController, RotationDetectorDelegate
 {
-	
 	@IBOutlet weak var imageView: UIImageView!
 	
 	let detector = RotationDetector()
@@ -38,7 +37,11 @@ class ViewController: UIViewController, RotationDetectorDelegate
 		self.frameIndex = (self.frameIndex + 1) % self.imageCount
 		self.imageView.image = UIImage(named: "\(self.imageBaseName)_\(self.frameIndex)")
 	}
-
+	
+	func rotationDetectorDidStatusChanged(rotationDetector: RotationDetector, isFlat: Bool)
+	{
+		
+	}
 
 }
 
